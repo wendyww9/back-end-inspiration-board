@@ -131,11 +131,11 @@ class TestBoardModel:
             deleted_board = db.session.get(Board, board_id)
             assert deleted_board is None
     
-    def test_board_delete_with_cards(self, app):
-        """Test deleting a board with cards (no cascade behavior)."""
+    def test_board_safe_delete_without_force(self, app):
+        """Test safe_delete without force parameter (should fail if board has cards)."""
         with app.app_context():
             # Create board with cards
-            board = Board(title="Board with Cards", owner="user")
+            board = Board(title="Board to Safe Delete", owner="user")
             db.session.add(board)
             db.session.commit()
             
@@ -143,29 +143,69 @@ class TestBoardModel:
             db.session.add(card)
             db.session.commit()
             
-            card_id = card.card_id
+            # Try to safe_delete without force (should raise ValueError)
+            with pytest.raises(ValueError) as exc_info:
+                board.safe_delete(force=False)
             
-            # Note: Current models don't have cascade delete configured
-            # Deleting a board with cards will fail due to foreign key constraint
-            # This test verifies that behavior
+            # Verify the error message
+            error_msg = str(exc_info.value)
+            assert "Cannot delete board" in error_msg
+            assert "1 card(s)" in error_msg
+            assert "force=True" in error_msg
             
-            # Try to delete the board (should fail)
-            db.session.delete(board)
-            try:
-                db.session.commit()
-                # If we get here, cascade delete is working
-                deleted_board = db.session.get(Board, board.board_id)
-                deleted_card = db.session.get(Card, card_id)
-                assert deleted_board is None
-                assert deleted_card is None
-            except Exception as e:
-                # Expected behavior: foreign key constraint violation
-                db.session.rollback()
-                # Verify board and card still exist
-                existing_board = db.session.get(Board, board.board_id)
-                existing_card = db.session.get(Card, card_id)
-                assert existing_board is not None
-                assert existing_card is not None
+            # Verify board and card still exist
+            existing_board = db.session.get(Board, board.board_id)
+            existing_card = db.session.get(Card, card.card_id)
+            assert existing_board is not None
+            assert existing_card is not None
+    
+    def test_board_safe_delete_with_force(self, app):
+        """Test safe_delete with force parameter (should delete board and cards)."""
+        with app.app_context():
+            # Create board with cards
+            board = Board(title="Board to Force Delete", owner="user")
+            db.session.add(board)
+            db.session.commit()
+            
+            card1 = Card(message="Card 1", board_id=board.board_id)
+            card2 = Card(message="Card 2", board_id=board.board_id)
+            db.session.add_all([card1, card2])
+            db.session.commit()
+            
+            board_id = board.board_id
+            card1_id = card1.card_id
+            card2_id = card2.card_id
+            
+            # Safe delete with force=True
+            board.safe_delete(force=True)
+            db.session.commit()
+            
+            # Verify both board and cards are deleted
+            deleted_board = db.session.get(Board, board_id)
+            deleted_card1 = db.session.get(Card, card1_id)
+            deleted_card2 = db.session.get(Card, card2_id)
+            
+            assert deleted_board is None
+            assert deleted_card1 is None
+            assert deleted_card2 is None
+    
+    def test_board_safe_delete_empty_board(self, app):
+        """Test safe_delete on a board without cards (should work without force)."""
+        with app.app_context():
+            # Create board without cards
+            board = Board(title="Empty Board", owner="user")
+            db.session.add(board)
+            db.session.commit()
+            
+            board_id = board.board_id
+            
+            # Safe delete without force (should work for empty board)
+            board.safe_delete(force=False)
+            db.session.commit()
+            
+            # Verify board is deleted
+            deleted_board = db.session.get(Board, board_id)
+            assert deleted_board is None
     
     def test_board_safe_delete_without_force(self, app):
         """Test safe_delete without force parameter (should fail if board has cards)."""

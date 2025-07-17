@@ -1,7 +1,7 @@
 from flask import Blueprint, request
 from ..db import db
 from ..models.board import Board
-# from ..models.card import Card
+from ..models.card import Card
 from .route_utilities import validate_models, create_model
 
 bp = Blueprint('board_bp', __name__, url_prefix='/boards')
@@ -31,19 +31,19 @@ def create_one_board():
 
     return new_board
 
-# @bp.post("/<board_id>/cards")
-# def create_one_card(board_id):
-#     """Create a new card for a selected board."""
-#     board = validate_models(Board, board_id)
-#     card_data = request.get_json()
-#     new_card = create_model(Card, card_data)
-#     return new_card
+@bp.post("/<board_id>/cards")
+def create_one_card(board_id):
+    """Create a new card for a selected board."""
+    board = validate_models(Board, board_id)
+    card_data = request.get_json()
+    new_card = create_model(Card, card_data)
+    return new_card
 
-# @bp.get("/<board_id>/cards")
-# def get_board_cards(board_id):
-#     """Get all cards for a selected board."""
-#     board = validate_models(Board, board_id)
-#     cards_list = [card.to_dict() for card in board.cards]
-#     return cards_list, 200
-#     # return board.cards, 200
+@bp.get("/<board_id>/cards")
+def get_board_cards(board_id):
+    """Get all cards for a selected board."""
+    board = validate_models(Board, board_id)
+    cards_list = [card.to_dict() for card in board.cards]
+    return cards_list, 200
+    # return board.cards, 200
 

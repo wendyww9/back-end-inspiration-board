@@ -7,8 +7,10 @@ def validate_models(cls, model_id):
     except:
         response = {"message": f"{cls.__name__} with ID {model_id} invalid."}
         abort(make_response(response, "400 Bad Request"))
-
-    query = db.select(cls).where(cls.id == model_id)
+    if cls.__name__ == "Board":
+        query = db.select(cls).where(cls.board_id == model_id)
+    else:   # Assuming cls is Card
+        query = db.select(cls).where(cls.card_id == model_id)
     model = db.session.scalar(query)
     if model is None:
         response = {"message": f"{cls.__name__} with ID {model_id} not found."}

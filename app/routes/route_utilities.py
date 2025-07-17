@@ -4,7 +4,7 @@ from ..db import db
 def validate_models(cls, model_id):
     try:
         model_id = int(model_id)
-    except:
+    except (ValueError, TypeError):
         response = {"message": f"{cls.__name__} with ID {model_id} invalid."}
         abort(make_response(response, "400 Bad Request"))
     if cls.__name__ == "Board":

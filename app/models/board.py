@@ -14,6 +14,8 @@ class Board(db.Model):
             "title": self.title,
             "owner": self.owner  
         }
+        if self.cards:
+            board_dict["cards"] = [card.to_dict() for card in self.cards]
         return board_dict
 
     @classmethod
@@ -23,3 +25,28 @@ class Board(db.Model):
             owner=board_data["owner"]
         )
         return new_board
+    
+    def safe_delete(self, force=False):
+        """
+        Safely delete a board and its cards.
+        
+        Args:
+            force (bool): If True, delete the board and all its cards.
+                         If False, raise an error if the board has cards.
+        
+        Raises:
+            ValueError: If force=False and the board has cards.
+        """
+        if not force and self.cards:
+            card_count = len(self.cards)
+            raise ValueError(
+                f"Cannot delete board '{self.title}' because it has {card_count} card(s). "
+                f"Use force=True to delete the board and all its cards."
+            )
+        
+        # Delete all cards first
+        for card in self.cards:
+            db.session.delete(card)
+        
+        # Then delete the board
+        db.session.delete(self)

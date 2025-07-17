@@ -75,7 +75,7 @@ class TestUpdateCardLikes:
         card_id = sample_card["id"]
         initial_likes = sample_card["likes_count"]
         
-        response = client.put(f"/cards/{card_id}")
+        response = client.put(f"/cards/{card_id}/likes")
         
         assert response.status_code == 200
         data = response.get_json()
@@ -90,26 +90,26 @@ class TestUpdateCardLikes:
         initial_likes = sample_card["likes_count"]
         
         # First update
-        response1 = client.put(f"/cards/{card_id}")
+        response1 = client.put(f"/cards/{card_id}/likes")
         assert response1.status_code == 200
         data1 = response1.get_json()
         assert data1["likes_count"] == initial_likes + 1
         
         # Second update
-        response2 = client.put(f"/cards/{card_id}")
+        response2 = client.put(f"/cards/{card_id}/likes")
         assert response2.status_code == 200
         data2 = response2.get_json()
         assert data2["likes_count"] == initial_likes + 2
         
         # Third update
-        response3 = client.put(f"/cards/{card_id}")
+        response3 = client.put(f"/cards/{card_id}/likes")
         assert response3.status_code == 200
         data3 = response3.get_json()
         assert data3["likes_count"] == initial_likes + 3
     
     def test_update_nonexistent_card_likes(self, client):
         """Test updating likes for a card that doesn't exist."""
-        response = client.put("/cards/999")
+        response = client.put("/cards/999/likes")
         
         assert response.status_code == 404
         data = response.get_json()
@@ -118,7 +118,7 @@ class TestUpdateCardLikes:
     
     def test_update_card_likes_with_invalid_id(self, client):
         """Test updating likes with invalid ID format."""
-        response = client.put("/cards/invalid")
+        response = client.put("/cards/invalid/likes")
         
         assert response.status_code == 400
         data = response.get_json()
@@ -144,7 +144,7 @@ class TestUpdateCardLikes:
         card_id = create_response.get_json()["id"]
         
         # Update likes
-        update_response = client.put(f"/cards/{card_id}")
+        update_response = client.put(f"/cards/{card_id}/likes")
         assert update_response.status_code == 200
         assert update_response.get_json()["likes_count"] == 1
         
@@ -157,6 +157,29 @@ class TestUpdateCardLikes:
         our_card = next((card for card in cards if card["id"] == card_id), None)
         assert our_card is not None
         assert our_card["likes_count"] == 1
+    
+    def test_update_card_likes_increment_only(self, client, sample_card):
+        """Test that likes only increment by 1 when like button is clicked."""
+        card_id = sample_card["id"]
+        initial_likes = sample_card["likes_count"]
+        
+        # First click - should increment by 1
+        response1 = client.put(f"/cards/{card_id}/likes")
+        assert response1.status_code == 200
+        data1 = response1.get_json()
+        assert data1["likes_count"] == initial_likes + 1
+        
+        # Second click - should increment by 1 again
+        response2 = client.put(f"/cards/{card_id}/likes")
+        assert response2.status_code == 200
+        data2 = response2.get_json()
+        assert data2["likes_count"] == initial_likes + 2
+        
+        # Third click - should increment by 1 again
+        response3 = client.put(f"/cards/{card_id}/likes")
+        assert response3.status_code == 200
+        data3 = response3.get_json()
+        assert data3["likes_count"] == initial_likes + 3
 
 
 class TestCardRoutesIntegration:
@@ -184,7 +207,7 @@ class TestCardRoutesIntegration:
         
         # 2. Update likes multiple times
         for i in range(3):
-            update_response = client.put(f"/cards/{card_id}")
+            update_response = client.put(f"/cards/{card_id}/likes")
             assert update_response.status_code == 200
             data = update_response.get_json()
             assert data["likes_count"] == i + 1
@@ -231,7 +254,7 @@ class TestCardRoutesIntegration:
         # Update likes for each card differently
         for i, card in enumerate(cards):
             for _ in range(i + 1):  # Card 1 gets 1 like, Card 2 gets 2 likes, etc.
-                response = client.put(f"/cards/{card['id']}")
+                response = client.put(f"/cards/{card['id']}/likes")
                 assert response.status_code == 200
         
         # Verify all cards have correct likes
@@ -265,7 +288,7 @@ class TestCardRoutesIntegration:
         
         # Update likes for each card
         for board_id, card in cards_by_board.items():
-            response = client.put(f"/cards/{card['id']}")
+            response = client.put(f"/cards/{card['id']}/likes")
             assert response.status_code == 200
             assert response.get_json()["likes_count"] == 1
         
@@ -305,7 +328,7 @@ class TestCardRoutesErrorHandling:
         assert delete_response.status_code == 200
         
         # Try to update likes for deleted card
-        update_response = client.put(f"/cards/{card_id}")
+        update_response = client.put(f"/cards/{card_id}/likes")
         assert update_response.status_code == 404
     
     def test_card_operations_with_malformed_ids(self, client):
@@ -333,7 +356,7 @@ class TestCardRoutesErrorHandling:
             assert delete_response.status_code == 404
             
             # Test update likes
-            update_response = client.put(f"/cards/{nonexistent_id}")
+            update_response = client.put(f"/cards/{nonexistent_id}/likes")
             assert update_response.status_code == 404
     
     def test_card_operations_with_very_large_ids(self, client):
@@ -343,8 +366,8 @@ class TestCardRoutesErrorHandling:
         for large_id in large_ids:
             # Test delete
             delete_response = client.delete(f"/cards/{large_id}")
-            assert delete_response.status_code == 404  # Should be 404, not 400
+            assert delete_response.status_code == 404 
             
             # Test update likes
-            update_response = client.put(f"/cards/{large_id}")
-            assert update_response.status_code == 404  # Should be 404, not 400
+            update_response = client.put(f"/cards/{large_id}/likes")
+            assert update_response.status_code == 404 

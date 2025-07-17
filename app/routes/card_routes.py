@@ -16,7 +16,7 @@ def delete_card(card_id):
     return delete_response
 
 
-@bp.put("/<card_id>")
+@bp.put("/<card_id>/likes")
 def update_card_likes(card_id):
     """Update the likes count of a card."""
     card = validate_models(Card, card_id)
